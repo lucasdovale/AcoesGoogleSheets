@@ -1,3 +1,8 @@
+/* Código para automatizar Carteira de Ações
+Escrito por Lucas do Vale Bezerra, 
+Engenheiro de Computação formado pelo ITA em 2022
+*/
+
 // Função que busca elemento e retorna o nó
 function buscarElemento(papeis, papel) {
   var i;
@@ -34,15 +39,22 @@ function mudarDePag(pag) {
 // Função que exclui linhas da carteira
 function excluirLinha() {
   var spreadsheet = SpreadsheetApp.getActive();
-  spreadsheet.getRange('B5:F5').activate();
-  spreadsheet.getRange('B5:F5').deleteCells(SpreadsheetApp.Dimension.ROWS);
+  spreadsheet.getRange('B5:J5').activate();
+  spreadsheet.getRange('B5:J5').deleteCells(SpreadsheetApp.Dimension.ROWS);
 };
 
 // Função que insere linhas na carteira
 function inserirLinha() {
   var spreadsheet = SpreadsheetApp.getActive();
-  spreadsheet.getRange('B5:F5').activate();
-  spreadsheet.getRange('B5:F5').insertCells(SpreadsheetApp.Dimension.ROWS);
+  spreadsheet.getRange('B5:J5').activate();
+  spreadsheet.getRange('B5:J5').insertCells(SpreadsheetApp.Dimension.ROWS);
+};
+
+// Limpando o preenchimento da Operação
+function limparPreenchimento() {
+  var spreadsheet = SpreadsheetApp.getActive();
+  spreadsheet.getRange('J7:M8').activate();
+  spreadsheet.getActiveRangeList().clear({contentsOnly: true, skipFilteredRows: true});
 };
 
 // Função que atualiza o Extrato
@@ -63,11 +75,13 @@ function atualizarExtrato() {
   extrato.getRange('G8').activate();
   extrato.getActiveRange().autoFill(extrato.getRange('G7:G8'), SpreadsheetApp.AutoFillSeries.DEFAULT_SERIES);
   extrato.getRange('I7:I8').activate();
+  limparPreenchimento();
 };
 
 // Função que atualiza a Carteira de Ações
 function atualizarCarteira() {
 
+  atualizarExtrato();
   // Arrays que armazenarão as leituras dos papeis, quantidade e preço médio das ações
   var papeis = [0];
   var qtd = [0];
@@ -81,11 +95,29 @@ function atualizarCarteira() {
   var dataCarteira = carteira.getDataRange().getValues();
   
   // Declarando variáveis para cálculos
+  var lin, col, i, j, ultimo;
   var papel = 0;
   var qt = 0;
-  var preco = 0;
+  var preco = 0
   var op;
-  var lin, col, i, j, ultimo;
+  
+  // Mudando para a planilha da carteira
+  mudarDePag(carteira);
+  lin = 5;
+  col = 2;
+  var cont = 0;
+  var palavra = dataCarteira[lin - 1][col - 1];
+  
+  // Verificando se na carteira há linhas suficientes para printar
+  while (palavra != 'Caixa Inicial') {
+    cont++;
+    lin++;
+    palavra = dataCarteira[lin - 1][col - 1];
+  }
+  
+  // Lendo o caixa
+  var caixaInicial = planilha.getActiveSheet().getRange(lin + 2, col).getValue();
+  var caixa = caixaInicial;
   
   // Extraindo os dados do Extrato
   for (lin = dataExtrato.length; lin > 6; lin--) {
@@ -107,11 +139,13 @@ function atualizarCarteira() {
     // Procura se papel já tá na carteira
     pos = buscarElemento(papeis, papel);
     if (pos != 0) { // Caso em que papel está na carteira
-      if (op == 'Compra') {
+      if (op == 'Compra') { // Caso em que comprou um papel
+        caixa -= qt * preco;
         pm[pos] = (qtd[pos] * pm[pos] + qt * preco) / (qtd[pos] + qt);
         qtd[pos] = qtd[pos] + qt;
       }
-      if (op == 'Venda') {
+      if (op == 'Venda') { // Caso em que vendeu um papel
+        caixa += qt * preco;
         pm[pos] = (qtd[pos] * pm[pos] - qt * preco) / (qtd[pos] - qt);
         qtd[pos] = qtd[pos] - qt;
         if (qtd[pos] == 0) {
@@ -123,6 +157,7 @@ function atualizarCarteira() {
     }
     else { // Caso em que papel não está na carteira
       if (op == 'Compra') {
+        caixa -= qt * preco;
         papeis.push(papel);
         qtd.push(qt);
         pm.push(preco);
@@ -147,9 +182,10 @@ function atualizarCarteira() {
   lin = 5;
   col = 2;
   var cont = 0;
-  palavra = dataCarteira[lin - 1][col - 1];
+  var palavra = dataCarteira[lin - 1][col - 1];
+  
   // Verificando se na carteira há linhas suficientes para printar
-  while (palavra != 'Investimento Inicial') {
+  while (palavra != 'Caixa Inicial') {
     cont++;
     lin++;
     palavra = dataCarteira[lin - 1][col - 1];
@@ -157,13 +193,13 @@ function atualizarCarteira() {
   // Caso em que há mais linhas que o necessário
   if (cont > papeis.length) {
     for (i = 0; i < (cont - papeis.length); i++) {
-      excluirLinha()
+      excluirLinha();
     }
   }
   // Caso em que há menos linhas que o necessário
   if (cont < papeis.length) {
     for (i = 0; i < (papeis.length - cont); i++) {
-      inserirLinha()
+      inserirLinha();
     }
   }
   // Printando as ações na carteira
@@ -171,9 +207,11 @@ function atualizarCarteira() {
   palavra = '=';
   carteira.getRange('B5').activate();
   for (lin = 5; lin < (5 + papeis.length); lin++) {
-    for (col = 2; col < 7; col++) {
-      if (col == 2) 
+    for (col = 2; col < 11; col++) {
+      if (col == 2) {
         planilha.getActiveSheet().getRange(lin,col).setValue(papeis[pos]);
+        planilha.getActiveSheet().getRange(lin + 1,col + 10).setValue(papeis[pos]);
+      }
       if (col == 3)
         planilha.getActiveSheet().getRange(lin,col).setValue(qtd[pos]);
       if (col == 4)
@@ -181,10 +219,23 @@ function atualizarCarteira() {
       if (col == 5)
         planilha.getActiveSheet().getRange(lin,col).setValue('=GOOGLEFINANCE(B' + lin + ')');
       if (col == 6)
-        planilha.getActiveSheet().getRange(lin,col).setValue('=(E' + lin + '- D' + lin + ') * C' + lin);
+        planilha.getActiveSheet().getRange(lin,col).setValue('=C' + lin + ' * D' + lin);
+      if (col == 7)
+        planilha.getActiveSheet().getRange(lin,col).setValue('= (E' + lin + ' - D' + lin + ') * C' + lin);
+      if (col == 8)
+        planilha.getActiveSheet().getRange(lin,col).setValue('= G' + lin + ' /F' + lin);
+      if (col == 9) {
+        var procv = "'Papeis da bolsa'"
+        planilha.getActiveSheet().getRange(lin,col).setValue('= PROCV(B' + lin + ';' + procv + '!$A$2:$C$887;3;FALSO)');
+      }
+      if (col == 10) {
+        planilha.getActiveSheet().getRange(lin,col).setValue('= (F' + lin + ' + G' + lin + ')/$I$' + (cont + 7));
+        planilha.getActiveSheet().getRange(lin + 1,col + 3).setValue('= (F' + lin + ' + G' + lin + ')/$I$' + (cont + 7));
+      }
     }
     palavra += ' + C' + lin + ' * E' + lin;
     pos++;
   }
   planilha.getActiveSheet().getRange(lin + 2, col - 2).setValue(palavra);
+  planilha.getActiveSheet().getRange(lin + 2, col - 5).setValue(caixa);
 };
