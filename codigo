@@ -216,21 +216,22 @@ function atualizarCarteira() {
         planilha.getActiveSheet().getRange(lin,col).setValue(qtd[pos]);
       if (col == 4)
         planilha.getActiveSheet().getRange(lin,col).setValue(pm[pos]);
-      if (col == 5)
-        planilha.getActiveSheet().getRange(lin,col).setValue('=GOOGLEFINANCE(B' + lin + ')');
+      if (col == 5) {
+        if(papeis[lin - 5].length <= 6)
+          planilha.getActiveSheet().getRange(lin,col).setValue('=GOOGLEFINANCE(B' + lin + ')');
+        else planilha.getActiveSheet().getRange(lin,col).setValue('=SE(B' + lin + '<>"";PROCV(B' + lin + ';\'Opções\'!D:I;4;FALSO);"")');
+      }
       if (col == 6)
         planilha.getActiveSheet().getRange(lin,col).setValue('=C' + lin + ' * D' + lin);
       if (col == 7)
         planilha.getActiveSheet().getRange(lin,col).setValue('= (E' + lin + ' - D' + lin + ') * C' + lin);
       if (col == 8)
         planilha.getActiveSheet().getRange(lin,col).setValue('= G' + lin + ' /F' + lin);
-      if (col == 9) {
-        var procv = "'Papeis da bolsa'"
-        planilha.getActiveSheet().getRange(lin,col).setValue('= PROCV(B' + lin + ';' + procv + '!$A$2:$C$887;3;FALSO)');
-      }
+      if (col == 9) 
+        planilha.getActiveSheet().getRange(lin,col).setValue('=SEERRO(PROCV(B' + lin + ';\'Papeis da bolsa\'!$A$2:$C$887;3;FALSO);"Opção")');
       if (col == 10) {
-        planilha.getActiveSheet().getRange(lin,col).setValue('= (F' + lin + ' + G' + lin + ')/$I$' + (cont + 7));
-        planilha.getActiveSheet().getRange(lin + 1,col + 3).setValue('= (F' + lin + ' + G' + lin + ')/$I$' + (cont + 7));
+        planilha.getActiveSheet().getRange(lin,col).setValue('= (F' + lin + ' + G' + lin + ')/$I$' + (papeis.length + 7));
+        planilha.getActiveSheet().getRange(lin + 1,col + 3).setValue('= (F' + lin + ' + G' + lin + ')/$I$' + (papeis.length + 7));
       }
     }
     palavra += ' + C' + lin + ' * E' + lin;
